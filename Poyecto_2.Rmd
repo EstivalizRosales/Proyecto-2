@@ -1,0 +1,109 @@
+---
+title: "Proyecto 2"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(datasets)
+library(cluster)
+library(factoextra)
+library(dplyr)
+library(readr)
+```
+
+```{r}
+head(beats)
+```
+
+## Eliminar datos
+Aqui eliminaremos columnas de datos que no son necesarias
+```{r}
+beats <-  beats[, !(colnames(beats)%in% c("artist_id","album_id","album_type", "album_release_date" , "album_release_year" , "album_release_date_precision","analysis_url", "disc_number","track_href","track_preview_url", "track_uri" , "external_urls.spotify", "album_name", "mode_name", "type"))]
+head(beats)
+```
+
+## Limpieza de la BBDD
+En este paso eliminaremos los datos NA y duplicados
+```{r}
+beats[beats == ""] <- NA
+beats <- na.omit(beats)
+
+beats <- beats[!duplicated(beats$track_id),]
+```
+
+## Contar canciones repetidas
+```{r}
+beats %>% count(duplicated(beats$track_name))
+```
+
+```{r}
+beats %>% distinct(track_name, .keep_all = TRUE, )
+```
+
+```{r}
+beats$duplicate <- duplicated(beats[,c("track_name", "artist_name")])
+beats2 <-beats %>%filter(beats$duplicate == TRUE) %>% arrange("track_name", "duration_ms", desc(duration_ms))
+```
+
+```{r}
+beats2 <- beats2 %>%distinct(track_name, artist_name, .keep_all = TRUE)
+```
+
+```{r}
+beats <- beats[!(beats$duplicate == TRUE),]
+```
+
+```{r}
+beats <- rbind(beats,beats2)
+```
+
+```{r}
+beats$duplicate <- NULL
+```
+
+Hasta aqui consideraremos listo el proceso de limpieza.
+
+## Transformacion de datos
+Transformamos cada variables al tipo de variable que realmente corresponde
+```{r}
+beats$track_id <- as.character(beats$track_id)
+beats$track_name <- as.character(beats$track_name)
+
+beats$danceability <- as.double(as.character(beats$danceability))
+beats$energy <- as.double(as.character(beats$energy))
+beats$key <- as.double(as.character(beats$key))
+beats$loudness <- as.double(as.character(beats$loudness))
+beats$mode <- as.double(as.character(beats$mode))
+beats$speechiness <- as.double(as.character(beats$speechiness)) 
+beats$acousticness <- as.double(as.character(beats$acousticness))
+beats$instrumentalness <- as.double(as.character(beats$instrumentalness))
+beats$liveness <- as.double(as.character(beats$liveness))
+beats$valence <- as.double(as.character(beats$valence))
+beats$tempo <- as.double(as.character(beats$tempo))
+beats$time_signature <- as.numeric(as.character(beats$time_signature))
+beats$duration_ms <- as.double(as.character(beats$duration_ms))
+```
+
+## Escalamiento de los datos
+```{r}
+data_sca<-beats %>% slice_sample(n=5000)
+```
+
+```{r}
+data_sca <- data_sca%>% mutate (duration_min = data_sca $ duration_ms / 60000)
+```
+
+
+```{r}
+data_sca <- filter(data_sca, data_sca$duration_min > 3)
+summary(data_sca)
+```
+
+```{r}
+boxplot(data_sca$danceability, horizontal = TRUE)
+```
+
